@@ -5,78 +5,68 @@ namespace SystemProgramming
 {
     class Program
     {
-        static void Main()
+        static void Main(string[] args)
         {
-            Console.WriteLine("Enter the path of the process to start:");
-            string processPath = Console.ReadLine();
-
-            if (string.IsNullOrWhiteSpace(processPath))
+            if (args.Length > 0)
             {
-                processPath = "notepad.exe"; 
-                
+                RunAsChildProcess(args);
+                return;
             }
 
-            Process childProcess = new Process();
-            childProcess.StartInfo.FileName = processPath;
-            childProcess.StartInfo.UseShellExecute = false;
+            RunAsParentProcess();
+        }
+
+        static void RunAsChildProcess(string[] args)
+        {
+            if (args.Length != 3)
+            {
+                System.Console.WriteLine("Потрібно 3 аргументи: число число операція(+-*/)");
+                return;
+            }
 
             try
             {
-                Console.WriteLine("\nStarting child process...");
-                childProcess.Start();
-                Console.WriteLine($"Child process started(ID: {childProcess.Id})");
+                double a = double.Parse(args[0]);
+                double b = double.Parse(args[1]);
+                string op = args[2];
 
-                Console.WriteLine("\nMake a choice:");
-                Console.WriteLine("1 - Waiting for process to exit");
-                Console.WriteLine("2 - Finish process forcibly");
-                Console.Write("Your choice: ");
-
-                var choice = Console.ReadKey();
-                Console.WriteLine();
-
-                switch (choice.KeyChar)
+                double result = op switch
                 {
-                    case '1':
-                        Console.WriteLine("\nWaiting for the process to finish...");
-                        childProcess.WaitForExit();
-                        Console.WriteLine($"Process finished with code: {childProcess.ExitCode}");
-                        break;
+                    "+" => a + b,
+                    "-" => a - b,
+                    "*" => a * b,
+                    "/" => a / b,
+                    _ => throw new System.Exception("Невідома операція")
+                };
 
-                    case '2':
-                        Console.WriteLine("\nTrying forcible exit...");
-                        try
-                        {
-                            childProcess.Kill();
-                            Console.WriteLine("Process forcibly finbished");
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Finished with error: {ex.Message}");
-                        }
-                        break;
-
-                    default:
-                        Console.WriteLine("Wrong choice.");
-                        break;
-                }
+                System.Console.WriteLine($"Результат: {a} {op} {b} = {result}");
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
+                System.Console.WriteLine($"Помилка: {ex.Message}");
             }
-            finally
-            {
-                try
-                {
-                    if (!childProcess.HasExited)
-                    {
-                        Console.WriteLine($"\nWarning: process {childProcess.Id} is still working");
-                    }
-                }
-                catch { }
+        }
 
-                Console.WriteLine("\nPress any key to exit...");
-                Console.ReadKey();
+        static void RunAsParentProcess()
+        {
+            while (true)
+            {
+                System.Console.WriteLine("\nВведіть 3 аргументи (напр. '5 3 +') або 'exit':");
+                string input = System.Console.ReadLine();
+
+                if (input == "exit") break;
+
+                string[] arguments = input.Split(' ');
+
+                var process = new System.Diagnostics.Process();
+                process.StartInfo.FileName = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+                process.StartInfo.Arguments = string.Join(" ", arguments);
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.RedirectStandardOutput = true;
+
+                process.Start();
+                System.Console.WriteLine(process.StandardOutput.ReadToEnd());
+                process.WaitForExit();
             }
         }
     }
