@@ -1,73 +1,88 @@
 ﻿using System;
 using System.Diagnostics;
-    
-namespace SystemProgramming
+
+class Program
 {
-    class Program
+    static void Main()
     {
-        static void Main(string[] args)
-        {
-            if (args.Length > 0)
-            {
-                RunAsChildProcess(args);
-                return;
-            }
+        Console.WriteLine("File Word Counter - Parent Process");
+        Console.WriteLine("Enter file path and search word (separated by space):");
+        Console.WriteLine(@"Example: C:\files\document.txt bicycle");
+        
+        string input = Console.ReadLine();
+        string[] args = input.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
 
-            RunAsParentProcess();
+        if (args.Length != 2)
+        {
+            Console.WriteLine("Error: You must enter exactly 2 arguments - file path and search word");
+            return;
         }
 
-        static void RunAsChildProcess(string[] args)
+        string filePath = args[0];
+        string searchWord = args[1];
+
+        Process childProcess = new Process();
+        childProcess.StartInfo.FileName = Process.GetCurrentProcess().MainModule.FileName;
+        childProcess.StartInfo.Arguments = $"\"{filePath}\" \"{searchWord}\"";
+        childProcess.StartInfo.UseShellExecute = false;
+        childProcess.StartInfo.RedirectStandardOutput = true;
+        childProcess.StartInfo.CreateNoWindow = true;
+
+        try
         {
-            if (args.Length != 3)
-            {
-                System.Console.WriteLine("Потрібно 3 аргументи: число число операція(+-*/)");
-                return;
-            }
-
-            try
-            {
-                double a = double.Parse(args[0]);
-                double b = double.Parse(args[1]);
-                string op = args[2];
-
-                double result = op switch
-                {
-                    "+" => a + b,
-                    "-" => a - b,
-                    "*" => a * b,
-                    "/" => a / b,
-                    _ => throw new System.Exception("Невідома операція")
-                };
-
-                System.Console.WriteLine($"Результат: {a} {op} {b} = {result}");
-            }
-            catch (System.Exception ex)
-            {
-                System.Console.WriteLine($"Помилка: {ex.Message}");
-            }
+            Console.WriteLine("\nStarting child process...");
+            childProcess.Start();
+            
+            string result = childProcess.StandardOutput.ReadToEnd();
+            childProcess.WaitForExit();
+            
+            Console.WriteLine("\nChild process result:");
+            Console.WriteLine(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
         }
 
-        static void RunAsParentProcess()
+        Console.WriteLine("\nPress any key to exit...");
+        Console.ReadKey();
+    }
+
+    static void RunAsChildProcess(string[] args)
+    {
+        if (args.Length != 2)
         {
-            while (true)
-            {
-                System.Console.WriteLine("\nВведіть 3 аргументи (напр. '5 3 +') або 'exit':");
-                string input = System.Console.ReadLine();
-
-                if (input == "exit") break;
-
-                string[] arguments = input.Split(' ');
-
-                var process = new System.Diagnostics.Process();
-                process.StartInfo.FileName = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
-                process.StartInfo.Arguments = string.Join(" ", arguments);
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
-
-                process.Start();
-                System.Console.WriteLine(process.StandardOutput.ReadToEnd());
-                process.WaitForExit();
-            }
+            Console.WriteLine("Error: Child process requires exactly 2 arguments");
+            return;
         }
+
+        string filePath = args[0];
+        string searchWord = args[1];
+        int count = 0;
+
+        try
+        {
+            string content = File.ReadAllText(filePath);
+            count = CountWordOccurrences(content, searchWord);
+            Console.WriteLine($"File: {filePath}");
+            Console.WriteLine($"Search word: '{searchWord}'");
+            Console.WriteLine($"Occurrences found: {count}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
+    }
+
+    static int CountWordOccurrences(string text, string word)
+    {
+        int count = 0;
+        int index = 0;
+        while ((index = text.IndexOf(word, index, StringComparison.OrdinalIgnoreCase)) != -1)
+        {
+            index += word.Length;
+            count++;
+        }
+        return count;
     }
 }
